@@ -22,6 +22,11 @@ class ViewController: UIViewController {
 //        Task {
 //            try await getPhotosInParallelExecution()
 //        }
+        
+        // MARK: TaskGroup example with dynamic number of PARALLEL execution
+//        Task {
+//            try await getPhotosWithTaskGroupExecution(numberOfPhotos: 5)
+//        }
     }
 }
 
@@ -58,6 +63,43 @@ extension ViewController {
         return try await [image1, image2, image3]
     }
 }
+
+// MARK: TaskGroup
+extension ViewController {
+    // When we have dynamic number of async tasks
+    // to execute then TaskGroup is the approach we need.
+    func getPhotosWithTaskGroupExecution(numberOfPhotos: Int) async throws -> [UIImage] {
+        var images = [UIImage]()
+        
+        // We will write the return type of each task in the first argument
+        // That's why we used UIImage.self as each task gives UIImage in return
+        try await withThrowingTaskGroup(of: UIImage.self) { [weak self] taskGroup in
+            guard let self else { return }
+            
+            for i in 1...numberOfPhotos {
+                // We can also separately add priorities to the each task
+                taskGroup.addTask {
+                    try await self.downloadPhoto(with: i)
+                }
+            }
+            
+            // Till this point no task is executed
+            // We just collected all tasks together to
+            // execute together IN PARALLEL
+            
+            // MARK: AsyncSequence
+            // This for-await-in also know as we are iterating over
+            // the asynchronous tasks
+            for try await image in taskGroup {
+                print("Adding image to the returing array")
+                images.append(image)
+            }
+        }
+        
+        return images
+    }
+}
+
 
 // MARK: Dummy time-consuming long running task e.g. Network call
 extension ViewController {
