@@ -13,6 +13,8 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // MARK: Each of the Task { } block is Unstructured Concurrency
+        
         // MARK: Async-await example with SERIAL execution
 //        Task {
 //            try await getPhotosInSerialExecution()
@@ -23,14 +25,23 @@ class ViewController: UIViewController {
 //            try await getPhotosInParallelExecution()
 //        }
         
-        // MARK: TaskGroup example with dynamic number of PARALLEL execution
-//        Task {
-//            try await getPhotosWithTaskGroupExecution(numberOfPhotos: 5)
-//        }
+        // MARK: TaskGroup example
+        // Also we can set priority in each task
+        Task(priority: .high) {
+            do {
+                try await getPhotosWithTaskGroupExecution(numberOfPhotos: 5)
+            } catch{
+                // If any of the child task is failed
+                // then the whole parent task will be canceled
+                // and an error will be thrown
+                print("Error in parent-task: \(error)")
+                throw error
+            }
+        }
     }
 }
 
-// MARK: Basic async-await example with SERIAL EXECUTION
+// MARK: Async-await example with SERIAL EXECUTION
 extension ViewController {
     func getPhotosInSerialExecution() async throws -> [UIImage] {
         // The flow of execution is done IN SERIAL
@@ -48,7 +59,7 @@ extension ViewController {
     }
 }
 
-// MARK: Basic async-await example with PARALLEL EXECUTION
+// MARK: Async-await example with PARALLEL EXECUTION
 extension ViewController {
     func getPhotosInParallelExecution() async throws -> [UIImage] {
         async let image1 = downloadPhoto(with: 1)
@@ -69,34 +80,57 @@ extension ViewController {
     // When we have dynamic number of async tasks
     // to execute then TaskGroup is the approach we need.
     func getPhotosWithTaskGroupExecution(numberOfPhotos: Int) async throws -> [UIImage] {
-        var images = [UIImage]()
-        
         // We will write the return type of each task in the first argument
         // That's why we used UIImage.self as each task gives UIImage in return
-        try await withThrowingTaskGroup(of: UIImage.self) { [weak self] taskGroup in
-            guard let self else { return }
-            
+        return try await withThrowingTaskGroup(of: UIImage?.self) { [weak self] taskGroup -> [UIImage] in
+            guard let self else { return [] }
+
             for i in 1...numberOfPhotos {
                 // We can also separately add priorities to the each task
                 taskGroup.addTask {
-                    try await self.downloadPhoto(with: i)
+                    // MARK: Task Cancellation checking example
+                    // Also some other APIs available under Task
+                    // e.g. Task.isCancelled which returns Bool
+                    do {
+                        try Task.checkCancellation()
+                        return try await self.downloadPhoto(with: i)
+                    } catch {
+                        print("Error in a child-task: \(error)")
+                        // Let's say we don't want to throw error
+                        // if any downloading fails
+                        // rather we want to return nil
+                        return nil
+                    }
                 }
             }
             
-            // Till this point no task is executed
-            // We just collected all tasks together to
-            // execute together IN PARALLEL
-            
+            // MARK: To check download failure case cancel the task here
+            // It's just a dummy way to check any task failure
+            //taskGroup.cancelAll()
+
             // MARK: AsyncSequence
-            // This for-await-in also know as we are iterating over
-            // the asynchronous tasks
+            // Till this point all the tasks will start execute IN PARALLEL
+            // We just collected all tasks together to
+            // collect their result output i.e. [UIImage] in this case
+            
+            // This for-await-in also known as ASYNC-SEQUENCE. We are just
+            // iterating over the asynchronous tasks
+            var images = [UIImage]()
             for try await image in taskGroup {
-                print("Adding image to the returing array")
-                images.append(image)
+                if let image = image {
+                    images.append(image)
+                } else {
+                    // MARK: TaskGroup Cancel example
+                    // Let's say If any of the child-task result was failed(found nil)
+                    // Then we want to cancel the whole parent task i.e. taskGroup
+                    taskGroup.cancelAll()
+                    throw DownloadError.taskCancelled
+                }
+                
+                
             }
+            return images
         }
-        
-        return images
     }
 }
 
@@ -109,4 +143,8 @@ extension ViewController {
         print("Finished downloading with photoID: \(photoID)")
         return UIImage()
     }
+}
+
+enum DownloadError: Error {
+    case taskCancelled
 }
