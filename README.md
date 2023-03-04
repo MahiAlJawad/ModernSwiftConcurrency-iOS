@@ -6,7 +6,7 @@ In WWDC2021 Apple came up with its new alternative approach in handling **Swift 
 
 ## Topics
 1. [Error-handling with `try-do-catch-throw-throws` and `Result<T, E>`](#1-error-handling)
-2. `async-await` and old approach
+2. [`async-await` and old approach](#2-async-await)
 3. How to adopt `async-await` from scratch or from existing APIs (Continuation)
 4. `Task` and `TaskGroups`
 5. Async-sequence
@@ -114,3 +114,73 @@ case .failure(let error):
   print("Got error: \(error)
 }
 ```
+
+## 2. Async-Await
+
+### Old Approach
+Let's say we want to download a photo using some API. The previous approach was something like this:
+
+```
+// Imagine we have this API
+func downloadPhoto(with photoID: Int, completion: @escaping (UIImage?) -> ())
+
+// Use of this API
+
+downloadPhoto(with: 1) { photo in
+// Now do the task you want to do with this photo
+}
+```
+
+**What's the problem with this approach?**
+
+Well let's see what happens if we want to download 3 photos serially (one after another).
+
+```
+downloadPhoto(with: 1) { photo1 in
+  guard let photo1 else {
+    return
+  }
+  
+  downloadPhoto(with: 2) { photo2 in
+    guard let photo2 else {
+      return
+    }
+    
+    downloadPhoto(with: 3) { photo3 in
+      guard let photo3 else { 
+        return
+      }
+      
+      // Downloaded all 3 photos
+      // Now we'll do whatever task we need to do with these 3 photos
+    }
+  }
+}
+
+```
+
+2 problem happens here:
+
+* Code becomes so long to manage
+* Long codes are more error-prone
+
+In fact I did 3 errors without any error from the compiller. 
+
+```
+guard let photo else { 
+   return
+}
+```
+
+Each time I have been checking if the photo is not nil, if we found the photo is nil we were supposed to handle this way:
+
+```
+guard let photo else { 
+   completion(nil)
+   return
+}
+```
+
+So that the caller may know that something wrong has happened.
+
+### Async-Await - The latest approach
