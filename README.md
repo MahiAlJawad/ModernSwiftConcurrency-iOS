@@ -5,14 +5,14 @@
 In WWDC2021 Apple came up with its new alternative approach in handling **Swift Concurrency**. The motive of this project is to explain all the latest stuff introduced in Swift Concurrency in one place. We will be covering the following [topics](#topics) with **less theretical but in more practical way** with coding examples. You can get the codes directly from [ViewController.swift](https://github.com/MahiAlJawad/ModernSwiftConcurrency-iOS/blob/main/ModernSwiftConcurrency-iOS/ViewController.swift) file.
 
 ## Topics
-1. [Error-handling with `try-do-catch-throw-throws` and `Result<T, E>`](#error-handling)
+1. [Error-handling with `try-do-catch-throw-throws` and `Result<T, E>`](#1-error-handling)
 2. `async-await` and old approach
 3. How to adopt `async-await` from scratch or from existing APIs (Continuation)
 4. `Task` and `TaskGroups`
 5. Async-sequence
 6. `actor` and old approach
 
-## Error-handling
+## 1. Error-handling
 
 This topic is not at all related to the Swift Concurrency. But as we are gonna see the coding example from `ViewController.swift` in our project, so it is important to understand the basic `try-catch` thing in Swift. If you are familiar well with this topic, you can skip this section surely.
 
