@@ -2,7 +2,7 @@
 
 ## Modern Concurrency in Swift with Examples
 
-In WWDC2021 Apple came up with its new alternative approach in handling **Swift Concurrency**. The motive of this project is to explain all the latest stuff introduced in Swift Concurrency in one place. We will be covering the following [topics](#topics) with **less theretical but in more practical way** with coding examples. You can get the codes directly from [ViewController.swift](https://github.com/MahiAlJawad/ModernSwiftConcurrency-iOS/blob/main/ModernSwiftConcurrency-iOS/ViewController.swift) file.
+In WWDC2021 Apple came up with its new alternative approach in handling **Swift Concurrency**. The motive of this project is to explain all the latest stuff introduced in Swift Concurrency in one place. We will be covering the following [topics](#topics) with **less theoretical but in more practical way** with coding examples. You can get the codes directly from [ViewController.swift](https://github.com/MahiAlJawad/ModernSwiftConcurrency-iOS/blob/main/ModernSwiftConcurrency-iOS/ViewController.swift) file.
 
 ## Topics
 1. [Error-handling with `try-do-catch-throw-throws` and `Result<T, E>`](#1-error-handling)
