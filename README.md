@@ -334,5 +334,54 @@ In that case we cannot make it this way. We will need something new. Which is **
 ### Continuation
 Continuation is required when you don't have any asynchronous end-point to fetch data but you want to make an `async` function to return the result.
 
+Let's say we have the following legacy completion handler based old function for photo downloading
+
+```
+    // MARK: Dummy downloadPhoto- Old approach
+    func downloadPhoto(with photoID: Int, completion: @escaping (UIImage?) -> ()) {
+        print("Starting downloading with photoID: \(photoID)")
+        let delay = photoID == 1 ? 8.0 : 2.0
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            print("Finished downloading with photoID: \(photoID)")
+            completion(UIImage())
+        }
+    }
+```
+
+It sends an `UIImage` with a completion handler. Now we want to make a wrapper around it which will be an `async` function.
+
+```
+    // MARK: downloadPhoto with Continuation
+    func downloadPhotoWithContinuation(with photoID: Int) async throws -> UIImage {
+        return try await withCheckedThrowingContinuation { continuation in
+            // Call the old completion handler based function
+            downloadPhoto(with: photoID) { image in
+                guard let image else {
+                    continuation.resume(throwing: DownloadError.serverError)
+                    return
+                }
+                
+                continuation.resume(returning: image)
+            }
+        }
+    }
+
+```
+
+It is that simple. We just have used a function `withCheckedThrowingContinuation` which allowed us to make an `async` function `func downloadPhotoWithContinuation(with photoID: Int) async throws -> UIImage` with the old function.
+
+Now let's go throgh what happens here. Inside the body of `withCheckedThrowingContinuation` we get a property `continuation` of type `CheckedContinuation<UIImage, Error>`.  We use the same old function `downloadPhoto(with: )` and in the completion handler when we get the result i.e. `UIImage` we return the result using `continuation.resume(returning: <result>)` function. Or if we get an error we throw error using `continuation.resume(throwing: <error>)` 
+
+What happens inside actually? When `downloadPhotoWithContinuation(with: )` is called we start our continuation function and call the old `downloadPhoto(with: )` function. At this point current thread may be released. Whenever we get the result from callback we `resume` our function. And the result is eventually returned to the original caller of `downloadPhotoWithContinuation(with: )` function. This way we can make `async` function using the old completion handler based functions.
+
+### Classifications of Continuation
+Before moving to the classification we need to know another important thing. **The maximum number of `resume()` call inside a continuation block should be at most 1**. If we call more than once it will result in a runtime error. 
+
+There are basically 4 types of Continuation available:
+
+1) **withCheckedThrowingContinuation**: This function checks for number of `resume()` count in runtime. And if `resume` called more than once it shows an error pointing to the code where `resume` is called more than once. Also it can `throw` an error. So using this function requires `try` keyword. If you care about error handling and checking the `resume` count then Apple recommends this function most.
+2) **withCheckedContinuation**: This is same as the type-1. Only the dissimilarity is it does not throw an error. That is, you don't need `try` to call it, nor you need to handle errors.
+3) **withUnsafeThrowingContinuation**: 
+
 
 
