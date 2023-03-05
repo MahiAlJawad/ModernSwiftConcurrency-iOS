@@ -7,7 +7,7 @@ In WWDC2021 Apple came up with its new alternative approach to handling **Swift 
 ## Topics
 1. [Error-handling with `try-do-catch-throw-throws` and `Result<T, E>`](#1-error-handling)
 2. [`async-await` and old approach](#2-async-await)
-3. How to adopt `async-await` from scratch or existing APIs (Continuation)
+3. [How to adopt `async-await` from scratch or existing APIs (Continuation)](#3-how-to-adopt-async-await-and-continuation)
 4. `Task` and `TaskGroups`
 5. Async-sequence
 6. `actor` and old approach
@@ -189,6 +189,7 @@ So that the caller may know that something wrong has happened.
 
 - Async function refers that it contains an asynchronous task
 - It may do a delay in calculation or fetching the data
+- It enables a function to pause its execution from the current thread and later resume when possible
 
 For example:
 
@@ -220,3 +221,118 @@ We can see we replaced the previous long code with only 3 lines of code. Also, a
 Some points need to mention here until the image1 is downloaded the image2 statement will not be executed. After the first line execution is completed and image1 is returned only then the next line will be executed. Similar goes for the other lines. Because there is an `await` keyword. It will pause and resume according to the OS decisions. Only after the result is returned from the `downloadPhoto()` function then the next line will be started. So the tasks will execute **serially**.
 
 Let us discuss some more possible suspension points. As we said earlier if there's an `await` keyword the function execution might be suspended and paused. But not mandatorily paused. Let's say there's enough core in the CPU to execute the function's task, then it will not pause the execution at all. But if there's a shortage of CPU core then the function execution might take a while so OS will decide by its priority of tasks that when to pause or resume the function execution. 
+
+Oh yeah, you also can make computed property `async` as you can make any function. You need `get async` keyword.
+
+Just imagine for now that you have the following function
+
+```
+func Foo() async -> Int
+```
+
+Now to make `async` computed property you need `get async`.
+
+```
+var foo: Int {
+  get async {
+    await Foo()
+  }
+}
+```
+
+## 3. How to adopt `async-await` and Continuation
+
+### Making `async` function
+You just need the keyword `async`. That's all.
+
+```
+func foo() async -> Int {
+  return 0
+}
+```
+
+It is also an asynchronous function but not an ideal asynchronous function. Because this function `foo()` never executed something which is asynchronous. In true asynchronous functions it will execute something with `await` keyword. That is it will execute something asynchronous.
+
+For example if you want to download some photo with a given `URL` then Apple provided some asynchronous way.
+
+```
+    func getPhoto(with url: URL) async throws -> UIImage {
+        let (data, _) = try await URLSession.shared.data(from: url)
+        guard let image = UIImage(data: data) else {
+            throw DownloadError.serverError
+        }
+        return image
+    }
+```
+
+Previously we have been using the following completion handler based function to fetch data from APIs.
+
+```
+URLSession.shared.dataTask(with: <URLRequest>, completionHandler: (Data?, URLResponse?, Error?) -> Void>)
+```
+
+Similarly all other cloud platforms are also providing asynchronous way of fetching data.
+
+**So this is the first approach of making an `async` function.**
+
+But let's say you don't have any asynchronous end-point, rather you have to use you old completion handler based API to fetch data but you want to make your `async` function from it. Then [**Continuation**](#continuation) is your solution. We will see later how to do that. But for now as we have learnt making asynchronoys functions let's make some asynchronous function.
+
+### Serial execution with `async-await`
+Let's get back to the 3 image downloading problem and make an `async` function with it.
+
+Let's make a dummy function for image donwloading as we don't want to do network call now.
+
+```
+    // Dummy async function
+    func downloadPhoto(with photoID: Int) async throws -> UIImage {
+        print("Starting downloading with photoID: \(photoID)")
+        try await Task.sleep(until: .now + .seconds(2), clock: .continuous)
+        print("Finished downloading with photoID: \(photoID)")
+        return UIImage()
+    }
+    
+    // An async function to download 3 images in serial
+    func getPhotosInSerialExecution() async throws -> [UIImage] {
+        // The flow of execution is done IN SERIAL
+        // i.e. When the image1 is downloading due to the `await` keyword
+        // THE THREAD IS RELEASED for other job. image2 download will not
+        // start until the image1 download is not completed
+        // Same goes for the image3 download will not start until the image2
+        // download is done
+        
+        let image1 = try await downloadPhoto(with: 1)
+        let image2 = try await downloadPhoto(with: 2)
+        let image3 = try await downloadPhoto(with: 3)
+        print("Done downloading all 3 photos")
+        return [image1, image2, image3]
+    }
+
+```
+
+We already learnt about these earlier that the image dowloads will be done one after another. And the execution make pause and resume according to the need as there is `await` (possible suspension point).
+
+### Parallel execution with `async-await`
+Let's say we want to download 3 images in parallel. Serial execution is required if there are some dependancy on each other. But if 3 task of downloading images are independent then we can in parallel or concurrently download the images also. `async let` enables.
+
+```
+    func getPhotosInParallelExecution() async throws -> [UIImage] {
+        async let image1 = downloadPhoto(with: 1)
+        async let image2 = downloadPhoto(with: 2)
+        async let image3 = downloadPhoto(with: 3)
+        
+        // thread may be released as this tasks are marked as `await`
+        // task execution never starts until the `await` keyword is used
+        return try await [image1, image2, image3]
+    }
+```
+
+Note that `async let` only asigns the task in let constant, it does not start the task. All 3 tasks are started when `await` is used.
+
+So now we have learnt how to concurrently execute some asynchronous tasks. But what if there are dynamic number of tasks in stead of 3?
+In that case we cannot make it this way. We will need something new. Which is **TaskGroup**. We will learn it later.
+
+### Continuation
+Continuation is required when you don't have any asynchronous end-point to fetch data but you want to make an `async` function to return the result.
+
+
+
