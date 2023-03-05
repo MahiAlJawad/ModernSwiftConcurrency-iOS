@@ -222,7 +222,7 @@ Some points need to mention here until the image1 is downloaded the image2 state
 
 Let us discuss some more possible suspension points. As we said earlier if there's an `await` keyword the function execution might be suspended and paused. But not mandatorily paused. Let's say there's enough core in the CPU to execute the function's task, then it will not pause the execution at all. But if there's a shortage of CPU core then the function execution might take a while so OS will decide by its priority of tasks that when to pause or resume the function execution. 
 
-Oh yeah, you also can make computed property `async` as you can make any function. You need `get async` keyword.
+Oh yeah, you also can make the computed property `async` as you can make any function. You need `get async` keyword.
 
 Just imagine for now that you have the following function
 
@@ -230,7 +230,7 @@ Just imagine for now that you have the following function
 func Foo() async -> Int
 ```
 
-Now to make `async` computed property you need `get async`.
+Now to make the `async` computed property you need `get async`.
 
 ```
 var foo: Int {
@@ -242,7 +242,7 @@ var foo: Int {
 
 ## 3. How to adopt `async-await` and Continuation
 
-### Making `async` function
+### Making an `async` function
 You just need the keyword `async`. That's all.
 
 ```
@@ -251,9 +251,9 @@ func foo() async -> Int {
 }
 ```
 
-It is also an asynchronous function but not an ideal asynchronous function. Because this function `foo()` never executed something which is asynchronous. In true asynchronous functions it will execute something with `await` keyword. That is it will execute something asynchronous.
+It is also an asynchronous function but not an ideal asynchronous function. Because this function `foo()` never executed something asynchronously. In true asynchronous functions, it will execute something with the `await` keyword. That is it will execute something asynchronously.
 
-For example if you want to download some photo with a given `URL` then Apple provided some asynchronous way.
+For example, if you want to download some photo with a given `URL` then Apple provided some asynchronous way.
 
 ```
     func getPhoto(with url: URL) async throws -> UIImage {
@@ -265,22 +265,22 @@ For example if you want to download some photo with a given `URL` then Apple pro
     }
 ```
 
-Previously we have been using the following completion handler based function to fetch data from APIs.
+Previously we have been using the following completion handler-based function to fetch data from APIs.
 
 ```
 URLSession.shared.dataTask(with: <URLRequest>, completionHandler: (Data?, URLResponse?, Error?) -> Void>)
 ```
 
-Similarly all other cloud platforms are also providing asynchronous way of fetching data.
+Similarly, all other cloud platforms are also providing an asynchronous way of fetching data.
 
-**So this is the first approach of making an `async` function.**
+**So this is the first approach to making an `async` function.**
 
-But let's say you don't have any asynchronous end-point, rather you have to use you old completion handler based API to fetch data but you want to make your `async` function from it. Then [**Continuation**](#continuation) is your solution. We will see later how to do that. But for now as we have learnt making asynchronoys functions let's make some asynchronous function.
+But let's say you don't have any asynchronous end-point, rather you have to use your old completion handler-based API to fetch data but you want to make your `async` function from it. Then [**Continuation**](#continuation) is your solution. We will see later how to do that. But for now, as we have learned to make asynchronous functions let's make some asynchronous functions.
 
 ### Serial execution with `async-await`
 Let's get back to the 3 image downloading problem and make an `async` function with it.
 
-Let's make a dummy function for image donwloading as we don't want to do network call now.
+Let's make a dummy function for image downloading as we don't want to do a network call now.
 
 ```
     // Dummy async function
@@ -295,7 +295,7 @@ Let's make a dummy function for image donwloading as we don't want to do network
     func getPhotosInSerialExecution() async throws -> [UIImage] {
         // The flow of execution is done IN SERIAL
         // i.e. When the image1 is downloading due to the `await` keyword
-        // THE THREAD IS RELEASED for other job. image2 download will not
+        // THE THREAD IS RELEASED for another job. image2 download will not
         // start until the image1 download is not completed
         // Same goes for the image3 download will not start until the image2
         // download is done
@@ -309,10 +309,12 @@ Let's make a dummy function for image donwloading as we don't want to do network
 
 ```
 
-We already learnt about these earlier that the image dowloads will be done one after another. And the execution make pause and resume according to the need as there is `await` (possible suspension point).
+We already learned about these earlier and the image downloads will be done one after another. And the execution makes pause and resume according to the need as there is an `await` (possible suspension point).
+
+Please note, if you are confused that why in our `ViewController.swift -> viewDidLoad()` function we called all functions using `Task` then please ignore this question for now. You will eventually learn this in the **Task** section.
 
 ### Parallel execution with `async-await`
-Let's say we want to download 3 images in parallel. Serial execution is required if there are some dependancy on each other. But if 3 task of downloading images are independent then we can in parallel or concurrently download the images also. `async let` enables.
+Let's say we want to download 3 images in parallel. Serial execution is required if there is some dependency on each other. But if 3 tasks of downloading images are independent then we can in parallel or concurrently download the images also. `async let` enables.
 
 ```
     func getPhotosInParallelExecution() async throws -> [UIImage] {
@@ -320,16 +322,16 @@ Let's say we want to download 3 images in parallel. Serial execution is required
         async let image2 = downloadPhoto(with: 2)
         async let image3 = downloadPhoto(with: 3)
         
-        // thread may be released as this tasks are marked as `await`
+        // thread may be released as these tasks are marked as `await`
         // task execution never starts until the `await` keyword is used
         return try await [image1, image2, image3]
     }
 ```
 
-Note that `async let` only asigns the task in let constant, it does not start the task. All 3 tasks are started when `await` is used.
+Note that `async let` only assigns the task in let constant, it does not start the task. All 3 tasks are started when `await` is used.
 
-So now we have learnt how to concurrently execute some asynchronous tasks. But what if there are dynamic number of tasks in stead of 3?
-In that case we cannot make it this way. We will need something new. Which is **TaskGroup**. We will learn it later.
+So now we have learned how to concurrently execute some asynchronous tasks. But what if there are a dynamic number of tasks instead of 3?
+In that case, we cannot make it this way. We will need something new. Which is **TaskGroup**. We will learn about it later.
 
 ### Continuation
 Continuation is required when you don't have any asynchronous end-point to fetch data but you want to make an `async` function to return the result.
@@ -354,7 +356,7 @@ It sends an `UIImage` with a completion handler. Now we want to make a wrapper a
     // MARK: downloadPhoto with Continuation
     func downloadPhotoWithContinuation(with photoID: Int) async throws -> UIImage {
         return try await withCheckedThrowingContinuation { continuation in
-            // Call the old completion handler based function
+            // Call the old completion handler-based function
             downloadPhoto(with: photoID) { image in
                 guard let image else {
                     continuation.resume(throwing: DownloadError.serverError)
@@ -368,20 +370,24 @@ It sends an `UIImage` with a completion handler. Now we want to make a wrapper a
 
 ```
 
-It is that simple. We just have used a function `withCheckedThrowingContinuation` which allowed us to make an `async` function `func downloadPhotoWithContinuation(with photoID: Int) async throws -> UIImage` with the old function.
+It is that simple. We just used a function `withCheckedThrowingContinuation` which allowed us to make an `async` function `func downloadPhotoWithContinuation(with photoID: Int) async throws -> UIImage` with the old function.
 
-Now let's go throgh what happens here. Inside the body of `withCheckedThrowingContinuation` we get a property `continuation` of type `CheckedContinuation<UIImage, Error>`.  We use the same old function `downloadPhoto(with: )` and in the completion handler when we get the result i.e. `UIImage` we return the result using `continuation.resume(returning: <result>)` function. Or if we get an error we throw error using `continuation.resume(throwing: <error>)` 
+Now let's go through what happens here. Inside the body of `withCheckedThrowingContinuation` we get a property `continuation` of type `CheckedContinuation<UIImage, Error>`.  We use the same old function `downloadPhoto(with: )` and in the completion handler when we get the result i.e. `UIImage` we return the result using `continuation.resume(returning: <result>)` function. Or if we get an error we throw an error using `continuation.resume(throwing: <error>)` 
 
-What happens inside actually? When `downloadPhotoWithContinuation(with: )` is called we start our continuation function and call the old `downloadPhoto(with: )` function. At this point current thread may be released. Whenever we get the result from callback we `resume` our function. And the result is eventually returned to the original caller of `downloadPhotoWithContinuation(with: )` function. This way we can make `async` function using the old completion handler based functions.
+What happens inside actually? When `downloadPhotoWithContinuation(with: )` is called we start our continuation function and call the old `downloadPhoto(with: )` function. At this point, current thread may be released. Whenever we get the result from callback we `resume` our function. And the result is eventually returned to the original caller of `downloadPhotoWithContinuation(with: )` function. This way we can make an `async` function using the old completion handler-based functions.
 
 ### Classifications of Continuation
-Before moving to the classification we need to know another important thing. **The maximum number of `resume()` call inside a continuation block should be at most 1**. If we call more than once it will result in a runtime error. 
+Before moving to the classification we need to know another important thing. **The maximum number of `resume()` calls inside a continuation block should be at most 1**. If we call more than once it will result in a runtime error. 
 
-There are basically 4 types of Continuation available:
+There are 4 types of Continuation available:
 
-1) **withCheckedThrowingContinuation**: This function checks for number of `resume()` count in runtime. And if `resume` called more than once it shows an error pointing to the code where `resume` is called more than once. Also it can `throw` an error. So using this function requires `try` keyword. If you care about error handling and checking the `resume` count then Apple recommends this function most.
-2) **withCheckedContinuation**: This is same as the type-1. Only the dissimilarity is it does not throw an error. That is, you don't need `try` to call it, nor you need to handle errors.
-3) **withUnsafeThrowingContinuation**: 
+1) **withCheckedThrowingContinuation**: This function checks for number of `resume()` count in runtime. And if `resume` is called more than once it shows an error pointing to the code where `resume` is called more than once. Also, it can `throw` an error. So using this function requires the `try` keyword. If you care about error handling and checking the `resume` count then Apple recommends this function most.
+2) **withCheckedContinuation**: This is same as the type-1. Only the dissimilarity is it does not throw an error. That is, you don't need `try` to call it, nor do you need to handle errors.
+3) **withUnsafeThrowingContinuation**: This function does not check for number of `resume()` count in runtime. Rather if you have used more than one `.resume()` call then it's gonna show you a runtime error without pointing out the reason for the error. So using this can be a bit risky. Also, it can throw an error. So using this function requires the `try` keyword.
+4) **withUnsafeContinuation**: This function is the same as the previous one (type-3) but the only difference is it does not throw an error. That is, you don't need `try` to call it, nor do you need to handle errors.
 
+These are the 4 options you have if you want to use Continuation for converting your completion handler-based API to `async` API. There are 3 types of `.resume()` functions available also. Let's have a look at those.
 
-
+1) **resume(throwing: <Error>)**: We use this to throw some error from the Continuation.
+2) **resume(returning: <result>)**: We use this to return the result returned by the original API.
+3) **resume(with: <Result<result, error>>)**: We use this if we want to return Result<T, E> based return from our new `async` function.
