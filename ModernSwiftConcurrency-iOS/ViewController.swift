@@ -27,17 +27,17 @@ class ViewController: UIViewController {
         
         // MARK: TaskGroup example
         // Also we can set priority in each task
-        Task(priority: .high) {
-            do {
-                try await getPhotosWithTaskGroupExecution(numberOfPhotos: 5)
-            } catch{
-                // If any of the child task is failed
-                // then the whole parent task will be canceled
-                // and an error will be thrown
-                print("Error in parent-task: \(error)")
-                throw error
-            }
-        }
+//        Task(priority: .high) {
+//            do {
+//                try await getPhotosWithTaskGroupExecution(numberOfPhotos: 5)
+//            } catch{
+//                // If any of the child task is failed
+//                // then the whole parent task will be canceled
+//                // and an error will be thrown
+//                print("Error in parent-task: \(error)")
+//                throw error
+//            }
+//        }
     }
 }
 
@@ -65,7 +65,7 @@ extension ViewController {
         async let image1 = downloadPhoto(with: 1)
         async let image2 = downloadPhoto(with: 2)
         async let image3 = downloadPhoto(with: 3)
-        // All three downloading tasks will start now
+        // No downloading tasks will start until `await` is used
         // All three tasks will execute in parallel
         // After all 3 images are donwloaded completely
         // then the function will return
@@ -137,14 +137,41 @@ extension ViewController {
 
 // MARK: Dummy time-consuming long running task e.g. Network call
 extension ViewController {
+    // MARK: Dummy downloadPhoto without Continuation
     func downloadPhoto(with photoID: Int) async throws -> UIImage {
+        let delay = photoID == 1 ? 8.0 : 2.0
         print("Starting downloading with photoID: \(photoID)")
-        try await Task.sleep(until: .now + .seconds(2), clock: .continuous)
+        try await Task.sleep(until: .now + .seconds(delay), clock: .continuous)
         print("Finished downloading with photoID: \(photoID)")
         return UIImage()
+    }
+    
+    // MARK: Dummy downloadPhoto- Old approach
+    func downloadPhoto(with photoID: Int, completion: @escaping (UIImage?) -> ()) {
+        print("Starting downloading with photoID: \(photoID)")
+        let delay = photoID == 1 ? 8.0 : 2.0
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            print("Finished downloading with photoID: \(photoID)")
+            completion(UIImage())
+        }
+    }
+    
+    // MARK: downloadPhoto with Continuation
+    func downloadPhotoWithContinuation(with photoID: Int) async throws -> UIImage {
+        return try await withCheckedThrowingContinuation { continuation in
+            // Call the old completion handler based function
+            downloadPhoto(with: photoID) { image in
+                guard let image else {
+                    continuation.resume(throwing: DownloadError.serverError)
+                    return
+                }
+                
+                continuation.resume(returning: image)
+            }
+        }
     }
 }
 
 enum DownloadError: Error {
-    case taskCancelled
+    case taskCancelled, serverError
 }
